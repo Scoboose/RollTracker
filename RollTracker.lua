@@ -450,7 +450,7 @@ local function ClearHistory()
             button2 = "Decline",
             OnAccept = function()
                 wipe(RollTrackerDB)
-                UpdateHistoryByLocation() -- Was UpdateHistory()
+                UpdateHistoryByLocation("Unknown") -- Was UpdateHistory()
             end,
             timeout = 0,
             whileDead = true,
@@ -526,17 +526,7 @@ minimapButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 minimapButton:SetScript("OnClick", function(self, button)
     if button == "LeftButton" then
         -- Check if the DB exists and if not, print no rolls recorded
-		if not RollTrackerDB or #RollTrackerDB == 0 then
-			containerFrame.historyFrame:Hide()
-			--titleBar:Hide()  -- Show the title bar when the command is used
-			--closeButton:Hide()  -- Show the close button when the command is used
-			--clearButton:Hide()  -- Show the clear history button when the command is used
-			--bgFrame:Hide() -- Show the black frame when the command is used
-			containerFrame.locationDropDown:Hide()
-            containerFrame:Hide()
-			containerFrame:EnableMouse(false)
-			print("No rolls recorded.")
-		elseif not containerFrame.historyFrame:IsShown() then
+        if not containerFrame.historyFrame:IsShown() then
 			--local initialLocation = "All"
             --UIDropDownMenu_SetText(containerFrame.locationDropDown, initialLocation)
             UpdateHistoryByLocation(GetRealZoneText()) -- Update history for current location
@@ -575,6 +565,7 @@ minimapButton:SetScript("OnClick", function(self, button)
     elseif button == "RightButton" then
         -- Use the built-in /roll command for right-click
         RandomRoll(1, 100) -- Roll
+        UpdateHistoryByLocation(GetRealZoneText())
     end
 end)
 

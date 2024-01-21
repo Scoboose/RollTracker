@@ -8,6 +8,9 @@ frame:RegisterEvent("CHAT_MSG_LOOT")
 -- Get the player's name
 local playerName = UnitName("player")
 
+-- Set Roll Reason
+local rollReason = nil
+
 -- Event handler function
 local function OnEvent(self, event, ...)
     local message = ...
@@ -17,6 +20,7 @@ local function OnEvent(self, event, ...)
     player, roll, min, max = message:match("(" .. playerName .. ") rolls (%d+) %((%d+)%-(%d+)%)")
     if roll and ((min == "1" and max == "100") or (min == "1" and max == "99") or (min == "1" and max == "98")) then
         rollType = "Roll"
+        item = rollReason
 		-- print(rollType)  -- debugging
     end
 
@@ -50,7 +54,10 @@ local function OnEvent(self, event, ...)
         end
 
         -- Insert roll data into the database
-        table.insert(RollTrackerDB, { roll = tonumber(roll), type = rollType, location = location, item = item, timestamp = time() })
+        table.insert(RollTrackerDB, { roll = tonumber(roll), name=playerName, type = rollType, location = location, item = item, timestamp = time() })
+        -- print(item) -- Debug
+        rollReason = nil -- Set back to nil after logging a roll with reason
+        -- print(rollReason) -- Debug
 		-- print("Roll captured:", tonumber(roll))  -- debugging
     end
 end
@@ -269,7 +276,7 @@ local function UpdateHistoryByLocation(location)
             --rollText:SetPoint("TOPLEFT",0,-0)
             --rollText:SetPoint("TOPRIGHT",-0,0)
             --rollText:SetJustifyH("CENTER")
-            rollText:SetText(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
+            rollText:SetText(dateText .. "    |    " .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
             -- print(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll) -- Debug
 			rollText:SetTextColor(1, 1, 1)
 
@@ -461,6 +468,40 @@ local function ClearHistory()
     end
 end
 
+-- Function to handle rolling for a reason
+local function RollReason()
+    StaticPopupDialogs["Roll_With_Reason"] = {
+        text = "What is the reason for rolling?",
+        hasEditBox = 1,
+        maxLetters = 500,
+        button1 = "Roll",
+        button2 = "Cancel",
+        OnShow = function(self)
+            local editBox = self.editBox
+            editBox:SetText("Chest")
+            editBox:HighlightText()
+            if editBox:HasFocus() then
+                hooksecurefunc("ChatEdit_InsertLink", function(text)
+                    editBox:SetText(text)
+                    --local clickedItem = text
+                    --print(clickedItem)
+                end)
+            end
+        end,
+        OnAccept = function(self)
+            local editBox = self.editBox
+            rollReason = editBox:GetText()
+            RandomRoll(1, 100) -- Roll
+            -- print(rollReason) -- Debug
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+        preferredIndex = 3,
+    }
+    StaticPopup_Show("Roll_With_Reason")
+end
+
 -- clearButton:SetScript("OnClick", ClearHistory)
 
 --[[
@@ -556,12 +597,13 @@ minimapButton:SetScript("OnClick", function(self, button)
         --print("Shift Alt Right!") -- Debug
         ClearHistory()
     elseif IsShiftKeyDown() and button == "RightButton" then
+        RollReason()
+    elseif IsLeftControlKeyDown() and button == "RightButton" then
         containerFrame:ClearAllPoints() -- Reset window position
         containerFrame:SetSize(450, 360)
         containerFrame:SetPoint("CENTER")
         --locationDropDown:ClearAllPoints() -- Reset window position
         --locationDropDown:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 120, 00)
-        print("Secret button press detected! Window positions reset <3")
     elseif button == "RightButton" then
         -- Use the built-in /roll command for right-click
         RandomRoll(1, 100) -- Roll
@@ -592,6 +634,8 @@ minimapButton:SetScript("OnEnter", function(self)
     GameTooltip:SetText("|cFF00FF00RollTracker|r")
     GameTooltip:AddLine("|cFFD3D3D3Left Click:|r Show/Hide Roll History")
     GameTooltip:AddLine("|cFFD3D3D3Right Click:|r Roll")
+    GameTooltip:AddLine("|cFFD3D3D3Shift + Right Click:|r Roll with a reason")
+    GameTooltip:AddLine("|cFFD3D3D3Control + Right Click:|r Reset window positions")
     GameTooltip:AddLine("|cFFD3D3D3Shift + Alt + Right Click:|r Clear History")
     GameTooltip:Show()
 end)
@@ -599,6 +643,5 @@ end)
 minimapButton:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
-
 
 containerFrame:EnableMouse(false)

@@ -473,16 +473,20 @@ local function RollReason()
     StaticPopupDialogs["Roll_With_Reason"] = {
         text = "What is the reason for rolling?",
         hasEditBox = 1,
-        maxLetters = 14,
+        maxLetters = 500,
         button1 = "Roll",
         button2 = "Cancel",
         OnShow = function(self)
             local editBox = self.editBox
-            -- editBox:SetHyperlinksEnabled(true) -- Not sure if needed
             editBox:SetText("Chest")
-            editBox:SetFocus()
             editBox:HighlightText()
-            -- print(editBox:GetText()) -- Debug
+            if editBox:HasFocus() then
+                hooksecurefunc("ChatEdit_InsertLink", function(text)
+                    editBox:SetText(text)
+                    --local clickedItem = text
+                    --print(clickedItem)
+                end)
+            end
         end,
         OnAccept = function(self)
             local editBox = self.editBox
@@ -639,6 +643,5 @@ end)
 minimapButton:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
-
 
 containerFrame:EnableMouse(false)

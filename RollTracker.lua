@@ -50,7 +50,7 @@ local function OnEvent(self, event, ...)
         end
 
         -- Insert roll data into the database
-        table.insert(RollTrackerDB, { roll = tonumber(roll), type = rollType, location = location, item = item, timestamp = time() })
+        table.insert(RollTrackerDB, { roll = tonumber(roll), name=playerName, type = rollType, location = location, item = item, timestamp = time() })
 		-- print("Roll captured:", tonumber(roll))  -- debugging
     end
 end
@@ -269,7 +269,7 @@ local function UpdateHistoryByLocation(location)
             --rollText:SetPoint("TOPLEFT",0,-0)
             --rollText:SetPoint("TOPRIGHT",-0,0)
             --rollText:SetJustifyH("CENTER")
-            rollText:SetText(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
+            rollText:SetText(dateText .. "    |    " .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
             -- print(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll) -- Debug
 			rollText:SetTextColor(1, 1, 1)
 

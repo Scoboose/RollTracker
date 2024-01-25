@@ -1,16 +1,76 @@
 -- RollTracker.lua
 
+-- ----Start of options----
+
+-- Check if the DB exists and if not, initialize it
+if not options then
+    options = {}
+end
+
+local optionsPanel = CreateFrame("Frame")
+optionsPanel:RegisterEvent("ADDON_LOADED")
+optionsPanel.name = "Roll Tracker"
+InterfaceOptions_AddCategory(optionsPanel)
+
+-- Create the scrolling parent frame and size it to fit inside the texture
+local optionsScrollFrame = CreateFrame("ScrollFrame", nil, optionsPanel, "UIPanelScrollFrameTemplate")
+optionsScrollFrame:SetPoint("TOPLEFT", 3, -4)
+optionsScrollFrame:SetPoint("BOTTOMRIGHT", -27, 4)
+
+-- Create the scrolling child frame, set its width to fit, and give it an arbitrary minimum height (such as 1)
+local optionsScrollChild = CreateFrame("Frame")
+optionsScrollFrame:SetScrollChild(optionsScrollChild)
+optionsScrollChild:SetWidth(InterfaceOptionsFramePanelContainer:GetWidth()-18)
+optionsScrollChild:SetHeight(1)
+
+-- Add widgets to the scrolling child frame as desired
+local optionsTitle = optionsScrollChild:CreateFontString("ARTWORK", nil, "GameFontNormalLarge")
+optionsTitle:SetPoint("TOP")
+optionsTitle:SetText("Roll Tracker")
+
+displayDateCheckButton = CreateFrame("CheckButton", "displayDateCheckButton", optionsScrollChild, "ChatConfigCheckButtonTemplate");
+displayDateCheckButton:SetPoint("TOPLEFT", 10, -15);
+displayDateCheckButton:SetText("Display Dates");
+displayDateCheckButton.tooltip = "When checked Roll Tracker will display the date the roll was made on";
+
+optionsPanel:SetScript("OnEvent", function (self, event)
+    if event == "ADDON_LOADED" then
+        if options["displayDate"] then
+            displayDateCheckButton:SetChecked(true)
+            -- print("Display date was true") -- Debug
+            else
+                displayDateCheckButton:SetChecked(false)
+                -- print("Display date was false") -- Debug
+        end
+    end
+end)
+displayDateCheckButton:SetScript("OnClick", 
+  function()
+    if displayDateCheckButton:GetChecked() then
+        options["displayDate"] = true
+        -- print("Checked!") -- Debug
+    else
+        options["displayDate"] = false
+        -- print("Unchecked!") -- Debug
+    end
+  end
+);
+
+optionsScrollChild.rollTypeText = optionsScrollChild:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+optionsScrollChild.rollTypeText:SetText("Display Date?")
+optionsScrollChild.rollTypeText:SetTextColor(1, 1, 1) -- White color
+optionsScrollChild.rollTypeText:SetPoint("TOPLEFT",35,-20)
+
+local optionsFooter = optionsScrollChild:CreateFontString("ARTWORK", nil, "GameFontNormal")
+optionsFooter:SetPoint("TOP", 0, -5000)
+optionsFooter:SetText("This is 5000 below the top, so the scrollChild automatically expanded.")
+
+-- ----End of options----
+
 -- Create a frame to handle events
 local frame = CreateFrame("FRAME")
 frame:RegisterEvent("CHAT_MSG_SYSTEM")
 frame:RegisterEvent("CHAT_MSG_LOOT")
-
--- Check if the DB exists and if not, initialize it
---[[
-if not RollTrackerDropdowns then
-    RollTrackerDropdowns = {dropDownPlayer = "", dropDownLocation = ""}
-end
---]]
 
 local dropDowns = {["dropDownPlayer"] = "", ["dropDownLocation"] = "",["dropDownItem"] = "", ["dropDownRollType"] = ""}
 
@@ -305,6 +365,15 @@ percentageText:SetTextColor(1, 1, 1) -- White color
 percentageText:SetPoint("TOP", titleText, "BOTTOM", 0, -5)
 --]]
 
+function rpairs(t)
+	return function(t, i)
+		i = i - 1
+		if i ~= 0 then
+			return i, t[i]
+		end
+	end, t, #t + 1
+end
+
 -- Function to update history based on selected location
 local function UpdateHistoryByLocation(location)
     -- print("UpdateHistoryByLocation called with location:", location)  -- debugging
@@ -336,7 +405,7 @@ local function UpdateHistoryByLocation(location)
     local rolls25AndUnder = 0
     local rolls75AndAbove = 0
 
-    for i, rollData in ipairs(RollTrackerDB) do
+    for i, rollData in rpairs(RollTrackerDB) do
         --if location == "All" or rollData.location == location or then -- Old
         --if dropDowns["dropDownLocation"] == "All" or rollData.location == dropDowns["dropDownLocation"] and dropDowns["dropDownPlayer"] == "All" or rollData.name == dropDowns["dropDownPlayer"] then
 		--if dropDowns["dropDownLocation"] == "All" or rollData.location == dropDowns["dropDownLocation"] then -- Debug Works
@@ -358,7 +427,16 @@ local function UpdateHistoryByLocation(location)
                         --rollText:SetPoint("TOPLEFT",0,-0)
                         --rollText:SetPoint("TOPRIGHT",-0,0)
                         --rollText:SetJustifyH("CENTER")
-                        rollText:SetText(dateText .. "    |    " .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
+                        --rollText:SetText(dateText .. "    |    " .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
+                        
+                        local showDate
+                        
+                        if options["displayDate"] then
+                            showDate = dateText .. "    |    "
+                            else
+                                showDate = ""
+                        end
+                        rollText:SetText(showDate .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
                         -- print(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll) -- Debug
                         rollText:SetTextColor(1, 1, 1)
 
@@ -815,6 +893,10 @@ minimapButton:SetScript("OnClick", function(self, button)
         containerFrame:SetPoint("CENTER")
         --locationDropDown:ClearAllPoints() -- Reset window position
         --locationDropDown:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 120, 00)
+    elseif IsLeftAltKeyDown() and button == "RightButton" then
+        InterfaceAddOnsList_Update()
+        InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+        --InterfaceOptionsFrame_Show()
     elseif button == "RightButton" then
         -- Use the built-in /roll command for right-click
         RandomRoll(1, 100) -- Roll
@@ -846,6 +928,7 @@ minimapButton:SetScript("OnEnter", function(self)
     GameTooltip:AddLine("|cFFD3D3D3Left Click:|r Show/Hide Roll History")
     GameTooltip:AddLine("|cFFD3D3D3Right Click:|r Roll")
     GameTooltip:AddLine("|cFFD3D3D3Shift + Right Click:|r Roll with a reason")
+    GameTooltip:AddLine("|cFFD3D3D3Alt + Right Click:|r Options")
     GameTooltip:AddLine("|cFFD3D3D3Control + Right Click:|r Reset window positions")
     GameTooltip:AddLine("|cFFD3D3D3Shift + Alt + Right Click:|r Clear History")
     GameTooltip:Show()

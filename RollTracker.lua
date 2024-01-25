@@ -5,6 +5,17 @@ local frame = CreateFrame("FRAME")
 frame:RegisterEvent("CHAT_MSG_SYSTEM")
 frame:RegisterEvent("CHAT_MSG_LOOT")
 
+-- Check if the DB exists and if not, initialize it
+--[[
+if not RollTrackerDropdowns then
+    RollTrackerDropdowns = {dropDownPlayer = "", dropDownLocation = ""}
+end
+--]]
+
+local dropDowns = {["dropDownPlayer"] = "", ["dropDownLocation"] = "",["dropDownItem"] = "", ["dropDownRollType"] = ""}
+
+local firstUse = true
+
 -- Get the player's name
 local playerName = UnitName("player")
 
@@ -118,8 +129,8 @@ containerFrame.TitleText:SetPoint("TOPLEFT",0,15)
 containerFrame.TitleText:SetPoint("TOPRIGHT",-0,0)
 
 containerFrame.historyFrame = CreateFrame("ScrollFrame", "RollTrackerHistoryFrame", containerFrame, "UIPanelScrollFrameTemplate")
-containerFrame.historyFrame:SetSize(450, 300)
-containerFrame.historyFrame:SetPoint("TOPLEFT",10,-48)
+containerFrame.historyFrame:SetSize(450, 280)
+containerFrame.historyFrame:SetPoint("TOPLEFT",10,-68)
 containerFrame.historyFrame:SetPoint("TOPRIGHT",-30,0)
 --containerFrame.historyFrame:SetPoint("BOTTOM", containerFrame, "BOTTOM", 0, 0) -- Position to the bottom of the container frame
 containerFrame.historyFrame:SetFrameStrata("BACKGROUND")
@@ -151,13 +162,66 @@ containerFrame.contentFrame:SetScript("OnHyperlinkLeave", function()
 -- Set historyFrame as the scroll child of contentFrame
 containerFrame.historyFrame:SetScrollChild(containerFrame.contentFrame)
 
+-- Create player drop-down menu
+containerFrame.playerDropDown = CreateFrame("Frame", "RollTrackerPlayerDropDown", containerFrame, "UIDropDownMenuTemplate")
+--containerFrame.locationDropDown:ClearAllPoints() -- Reset window position
+--containerFrame.locationDropDown:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 120, 00)
+containerFrame.playerDropDown:SetPoint("TOPLEFT",-15,-35)
+--containerFrame.playerDropDown:SetPoint("TOPRIGHT",0,0)
+UIDropDownMenu_SetWidth(containerFrame.playerDropDown,80,0)
+UIDropDownMenu_JustifyText(containerFrame.playerDropDown,"LEFT")
+containerFrame.playerDropDown:Hide() -- Hide initially
+
+containerFrame.characterNameText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+containerFrame.characterNameText:SetText("Character")
+containerFrame.characterNameText:SetTextColor(1, 1, 1) -- White color
+containerFrame.characterNameText:SetPoint("TOPLEFT",30,-25)
+-- containerFrame.characterNameText:SetPoint("TOPRIGHT",0,0)
+
 -- Create location drop-down menu
 containerFrame.locationDropDown = CreateFrame("Frame", "RollTrackerLocationDropDown", containerFrame, "UIDropDownMenuTemplate")
 --containerFrame.locationDropDown:ClearAllPoints() -- Reset window position
 --containerFrame.locationDropDown:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 120, 00)
-containerFrame.locationDropDown:SetPoint("TOPLEFT",-15,-20)
-containerFrame.locationDropDown:SetPoint("TOPRIGHT",0,0)
+containerFrame.locationDropDown:SetPoint("TOPLEFT",85,-35)
+--containerFrame.locationDropDown:SetPoint("TOPRIGHT",0,0)
+UIDropDownMenu_SetWidth(containerFrame.locationDropDown,80,0)
+UIDropDownMenu_JustifyText(containerFrame.locationDropDown,"LEFT")
 containerFrame.locationDropDown:Hide() -- Hide initially
+
+containerFrame.locationText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+containerFrame.locationText:SetText("Location")
+containerFrame.locationText:SetTextColor(1, 1, 1) -- White color
+containerFrame.locationText:SetPoint("TOPLEFT",130,-25)
+
+-- Create item drop-down menu
+containerFrame.itemDropDown = CreateFrame("Frame", "RollTrackerItemDropDown", containerFrame, "UIDropDownMenuTemplate")
+--containerFrame.locationDropDown:ClearAllPoints() -- Reset window position
+--containerFrame.locationDropDown:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 120, 00)
+containerFrame.itemDropDown:SetPoint("TOPLEFT",185,-35)
+--containerFrame.locationDropDown:SetPoint("TOPRIGHT",0,0)
+UIDropDownMenu_SetWidth(containerFrame.itemDropDown,120,0)
+UIDropDownMenu_JustifyText(containerFrame.itemDropDown,"LEFT")
+containerFrame.itemDropDown:Hide() -- Hide initially
+
+containerFrame.itemText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+containerFrame.itemText:SetText("Item")
+containerFrame.itemText:SetTextColor(1, 1, 1) -- White color
+containerFrame.itemText:SetPoint("TOPLEFT",260,-25)
+
+-- Create roll type drop-down menu
+containerFrame.rollTypeDropDown = CreateFrame("Frame", "RollTrackerrollTypeDropDown", containerFrame, "UIDropDownMenuTemplate")
+--containerFrame.locationDropDown:ClearAllPoints() -- Reset window position
+--containerFrame.locationDropDown:SetPoint("TOPLEFT", containerFrame, "TOPLEFT", 120, 00)
+containerFrame.rollTypeDropDown:SetPoint("TOPLEFT",325,-35)
+--containerFrame.locationDropDown:SetPoint("TOPRIGHT",0,0)
+UIDropDownMenu_SetWidth(containerFrame.rollTypeDropDown,60,0)
+UIDropDownMenu_JustifyText(containerFrame.rollTypeDropDown,"LEFT")
+containerFrame.rollTypeDropDown:Hide() -- Hide initially
+
+containerFrame.rollTypeText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+containerFrame.rollTypeText:SetText("Roll Type")
+containerFrame.rollTypeText:SetTextColor(1, 1, 1) -- White color
+containerFrame.rollTypeText:SetPoint("TOPLEFT",360,-25)
 
 -- Text area for when no rolls are found in a location
 containerFrame.NoRolls  = containerFrame:CreateFontString(nil,"ARTWORK","GameFontNormalLarge")
@@ -245,6 +309,12 @@ percentageText:SetPoint("TOP", titleText, "BOTTOM", 0, -5)
 local function UpdateHistoryByLocation(location)
     -- print("UpdateHistoryByLocation called with location:", location)  -- debugging
 
+    --[[
+    for k, v in pairs(dropDowns) do -- Debug
+        print(k,v) -- Debug
+    end
+    --]]
+
     -- Check if RollTrackerDB exists
     if not RollTrackerDB then
         RollTrackerDB = {}
@@ -267,48 +337,70 @@ local function UpdateHistoryByLocation(location)
     local rolls75AndAbove = 0
 
     for i, rollData in ipairs(RollTrackerDB) do
-        if location == "All" or rollData.location == location then
-			if rollData.item == nil then
-				rollData.item = "Unknown"
-			end
-            local dateText = date("%m/%d/%Y", rollData.timestamp or 0)
-            local rollText = containerFrame.contentFrame:CreateFontString("RollTrackerRollText", "HIGHLIGHT", "GameFontNormalSmall")
-            --rollText:SetPoint("TOPLEFT",0,-0)
-            --rollText:SetPoint("TOPRIGHT",-0,0)
-            --rollText:SetJustifyH("CENTER")
-            rollText:SetText(dateText .. "    |    " .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
-            -- print(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll) -- Debug
-			rollText:SetTextColor(1, 1, 1)
+        --if location == "All" or rollData.location == location or then -- Old
+        --if dropDowns["dropDownLocation"] == "All" or rollData.location == dropDowns["dropDownLocation"] and dropDowns["dropDownPlayer"] == "All" or rollData.name == dropDowns["dropDownPlayer"] then
+		--if dropDowns["dropDownLocation"] == "All" or rollData.location == dropDowns["dropDownLocation"] then -- Debug Works
+        --if dropDowns["dropDownPlayer"] == "All" or rollData.name == dropDowns["dropDownPlayer"] then -- Debug Works
+        if dropDowns["dropDownLocation"] == "All" or rollData.location == dropDowns["dropDownLocation"] then
+            if dropDowns["dropDownPlayer"] == "All" or rollData.name == dropDowns["dropDownPlayer"] then
+                if dropDowns["dropDownItem"] == "All" or rollData.item == dropDowns["dropDownItem"] then
+                    if dropDowns["dropDownRollType"] == "All" or rollData.type == dropDowns["dropDownRollType"] then
+                        
+                    
+                    
+                        -- print("Drop downs - Location: " .. dropDowns["dropDownLocation"] .. " Player: " .. dropDowns["dropDownPlayer"]) -- debug
+                        -- print("Roll data - Location: " .. rollData.location .. " Player: " .. rollData.name) -- debug
+                        if rollData.item == nil then
+                            rollData.item = "Unknown"
+                        end
+                        local dateText = date("%m/%d/%Y", rollData.timestamp or 0)
+                        local rollText = containerFrame.contentFrame:CreateFontString("RollTrackerRollText", "HIGHLIGHT", "GameFontNormalSmall")
+                        --rollText:SetPoint("TOPLEFT",0,-0)
+                        --rollText:SetPoint("TOPRIGHT",-0,0)
+                        --rollText:SetJustifyH("CENTER")
+                        rollText:SetText(dateText .. "    |    " .. rollData.name .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll)
+                        -- print(dateText .. "    |    " .. rollData.location .. "    |    " .. rollData.item .. "    |    " ..rollData.type .. "    |    " .. rollData.roll) -- Debug
+                        rollText:SetTextColor(1, 1, 1)
 
-            if rollData.roll >= 75 then
-                rollText:SetTextColor(0, 1, 0)
-                rolls75AndAbove = rolls75AndAbove + 1
-            elseif rollData.roll <= 25 then
-                rollText:SetTextColor(1, 0, 0)
-                rolls25AndUnder = rolls25AndUnder + 1
-            else
-                rollText:SetTextColor(1, 1, 0)
+                        if rollData.roll >= 75 then
+                            rollText:SetTextColor(0, 1, 0)
+                            rolls75AndAbove = rolls75AndAbove + 1
+                        elseif rollData.roll <= 25 then
+                            rollText:SetTextColor(1, 0, 0)
+                            rolls25AndUnder = rolls25AndUnder + 1
+                        else
+                            rollText:SetTextColor(1, 1, 0)
+                        end
+
+                        --rollText:SetPoint("TOPLEFT", containerFrame.contentFrame, "TOPLEFT", 10, -10 - 15 * (#rollTexts + 1))
+                        rollText:SetPoint("TOPLEFT", containerFrame.contentFrame, "TOPLEFT", 0, - 15 * (#rollTexts + 1))
+                        rollText:SetDrawLayer("OVERLAY")
+                        rollText:Show()
+
+                        table.insert(rollTexts, rollText)
+                    end
+                end
             end
-
-            --rollText:SetPoint("TOPLEFT", containerFrame.contentFrame, "TOPLEFT", 10, -10 - 15 * (#rollTexts + 1))
-            rollText:SetPoint("TOPLEFT", containerFrame.contentFrame, "TOPLEFT", 0, - 15 * (#rollTexts + 1))
-            rollText:SetDrawLayer("OVERLAY")
-            rollText:Show()
-
-            table.insert(rollTexts, rollText)
         end
     end
 
     -- Calculate percentages for the selected location
     local totalRolls = 0
 
-    if location == "All" then
+    if dropDowns["dropDownLocation"] == "All" and dropDowns["dropDownPlayer"] == "All" and dropDowns["dropDownItem"] == "All" then
         totalRolls = #RollTrackerDB
     else
         for _, rollData in ipairs(RollTrackerDB) do
-            if rollData.location == location then
-                totalRolls = totalRolls + 1
+            if rollData.location == dropDowns["dropDownLocation"] or dropDowns["dropDownLocation"] == "All" then
+                if rollData.name == dropDowns["dropDownPlayer"] or dropDowns["dropDownPlayer"] == "All" then
+                    if rollData.item == dropDowns["dropDownItem"] or dropDowns["dropDownItem"] == "All" then
+                        if dropDowns["dropDownRollType"] == "All" or rollData.type == dropDowns["dropDownRollType"] then
+                            totalRolls = totalRolls + 1
+                        end
+                    end
+                end
             end
+                
         end
     end
 
@@ -318,18 +410,46 @@ local function UpdateHistoryByLocation(location)
         containerFrame.percentageText:SetText(string.format("Percentage of rolls 25 and under: %.2f%%   |   Percentage of rolls 75 and over: %.2f%%", percentage25AndUnder, percentage75AndAbove))
         containerFrame.NoRolls:Hide()
     else
-        containerFrame.percentageText:SetText("No roll history available for " .. location)
+        containerFrame.percentageText:SetText("No roll history available")
         containerFrame.NoRolls:Show()
-        containerFrame.NoRolls:SetText("No roll history available for " .. location)
+        containerFrame.NoRolls:SetText("No roll history available for " .. dropDowns["dropDownPlayer"] .. " at " .. dropDowns["dropDownLocation"] .. "\nfor " .. dropDowns["dropDownItem"] .. " with a roll type of " .. dropDowns["dropDownRollType"])
     end
 end
 
--- Function to handle drop-down menu selection
+-- Function to handle location drop-down menu selection
 local function OnLocationDropDownSelect(self, arg1, arg2, checked)
     -- print("OnLocationDropDownSelect location:", arg1)  -- debugging
     local selectedLocation = arg1 or "All"  -- Use "All" if arg1 is nil
     UIDropDownMenu_SetText(containerFrame.locationDropDown, selectedLocation)
+    dropDowns["dropDownLocation"] = selectedLocation
     UpdateHistoryByLocation(selectedLocation)
+end
+
+-- Function to handle player drop-down menu selection
+local function OnPlayerDropDownSelect(self, arg1, arg2, checked)
+    -- print("OnLocationDropDownSelect location:", arg1)  -- debugging
+    local selectedPlayer = arg1 or "All"  -- Use Player name if arg1 is nil
+    UIDropDownMenu_SetText(containerFrame.playerDropDown, selectedPlayer)
+    dropDowns["dropDownPlayer"] = selectedPlayer
+    UpdateHistoryByLocation(selectedPlayer)
+end
+
+-- Function to handle item drop-down menu selection
+local function OnItemDropDownSelect(self, arg1, arg2, checked)
+    -- print("OnLocationDropDownSelect location:", arg1)  -- debugging
+    local selectedItem = arg1 or "All"  -- Use Player name if arg1 is nil
+    UIDropDownMenu_SetText(containerFrame.itemDropDown, selectedItem)
+    dropDowns["dropDownItem"] = selectedItem
+    UpdateHistoryByLocation(selectedItem)
+end
+
+-- Function to handle roll type drop-down menu selection
+local function OnRollTypeDropDownSelect(self, arg1, arg2, checked)
+    -- print("OnLocationDropDownSelect location:", arg1)  -- debugging
+    local selectedRollType = arg1 or "All"  -- Use Player name if arg1 is nil
+    UIDropDownMenu_SetText(containerFrame.rollTypeDropDown, selectedRollType)
+    dropDowns["dropDownRollType"] = selectedRollType
+    UpdateHistoryByLocation(selectedRollType)
 end
 
 -- Initialize location drop-down menu with default value
@@ -354,10 +474,91 @@ UIDropDownMenu_Initialize(containerFrame.locationDropDown, function()
     end
 end)
 
+-- Initialize player drop-down menu with default value
+UIDropDownMenu_Initialize(containerFrame.playerDropDown, function()
+    local info = UIDropDownMenu_CreateInfo()
+    info.text = "All"
+    info.func = OnPlayerDropDownSelect
+    UIDropDownMenu_AddButton(info)
+
+    if RollTrackerDB then
+        local players = {}
+        for _, rollData in ipairs(RollTrackerDB) do
+            players[rollData.name] = true
+        end
+
+        for player in pairs(players) do
+            info.text = player
+            info.func = OnPlayerDropDownSelect
+            info.arg1 = player  -- Pass the location as arg1
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+end)
+
+-- Initialize item drop-down menu with default value
+UIDropDownMenu_Initialize(containerFrame.itemDropDown, function()
+    local info = UIDropDownMenu_CreateInfo()
+    info.text = "All"
+    info.func = OnItemDropDownSelect
+    UIDropDownMenu_AddButton(info)
+
+    if RollTrackerDB then
+        local items = {}
+        for _, rollData in ipairs(RollTrackerDB) do
+            items[rollData.item] = true
+        end
+
+        for item in pairs(items) do
+            info.text = item
+            info.func = OnItemDropDownSelect
+            info.arg1 = item  -- Pass the location as arg1
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+end)
+
+-- Initialize roll type drop-down menu with default value
+UIDropDownMenu_Initialize(containerFrame.rollTypeDropDown, function()
+    local info = UIDropDownMenu_CreateInfo()
+    info.text = "All"
+    info.func = OnRollTypeDropDownSelect
+    UIDropDownMenu_AddButton(info)
+
+    if RollTrackerDB then
+        local types = {}
+        for _, rollData in ipairs(RollTrackerDB) do
+            types[rollData.type] = true
+        end
+
+        for type in pairs(types) do
+            info.text = type
+            info.func = OnRollTypeDropDownSelect
+            info.arg1 = type  -- Pass the location as arg1
+            UIDropDownMenu_AddButton(info)
+        end
+    end
+end)
+
 -- Set the initial selected value for locationDropDown
 local initialLocation = "All"
 UIDropDownMenu_SetText(containerFrame.locationDropDown, initialLocation)
 OnLocationDropDownSelect(nil, initialLocation) -- Manually trigger the initial selection
+
+-- Set the initial selected value for playerDropDown
+local initialPlayer = playerName
+UIDropDownMenu_SetText(containerFrame.playerDropDown, initialPlayer)
+OnPlayerDropDownSelect(nil, initialPlayer) -- Manually trigger the initial selection
+
+-- Set the initial selected value for itemDropDown
+local initialItem = "All"
+UIDropDownMenu_SetText(containerFrame.itemDropDown, initialItem)
+OnItemDropDownSelect(nil, initialItem) -- Manually trigger the initial selection
+
+-- Set the initial selected value for rollType
+local initialRollType = "All"
+UIDropDownMenu_SetText(containerFrame.rollTypeDropDown, initialRollType)
+OnItemDropDownSelect(nil, initialRollType) -- Manually trigger the initial selection
 
 
 
@@ -568,21 +769,28 @@ minimapButton:SetScript("OnClick", function(self, button)
     if button == "LeftButton" then
         -- Check if the DB exists and if not, print no rolls recorded
         if not containerFrame.historyFrame:IsShown() then
-			--local initialLocation = "All"
+            if firstUse == true then
+                firstUse = false
+                dropDowns = {["dropDownPlayer"] = playerName, ["dropDownLocation"] = GetRealZoneText(), ["dropDownItem"] = "All", ["dropDownRollType"] = "All"}
+                OnLocationDropDownSelect(nil, GetRealZoneText()) -- Manually trigger the initial selection
+            end
+            --local initialLocation = "All"
             --UIDropDownMenu_SetText(containerFrame.locationDropDown, initialLocation)
-            UpdateHistoryByLocation(GetRealZoneText()) -- Update history for current location
-            OnLocationDropDownSelect(nil, GetRealZoneText()) -- Manually trigger the initial selection
             
             -- UpdateHistory()
-			--UpdateHistoryByLocation("All")
-			containerFrame.historyFrame:Show()
-			--titleBar:Show()  -- Show the title bar when the command is used
-			--closeButton:Show()  -- Show the close button when the command is used
-			--clearButton:Show()  -- Show the clear history button when the command is used
-			--bgFrame:Show() -- Show the black frame when the command is used
-			containerFrame.locationDropDown:Show()
+            --UpdateHistoryByLocation("All")
+            containerFrame.historyFrame:Show()
+            --titleBar:Show()  -- Show the title bar when the command is used
+            --closeButton:Show()  -- Show the close button when the command is used
+            --clearButton:Show()  -- Show the clear history button when the command is used
+            --bgFrame:Show() -- Show the black frame when the command is used
+            containerFrame.locationDropDown:Show()
+            containerFrame.playerDropDown:Show()
+            containerFrame.itemDropDown:Show()
+            containerFrame.rollTypeDropDown:Show()
             containerFrame:Show()
-			containerFrame:EnableMouse(true)
+            containerFrame:EnableMouse(true)
+            UpdateHistoryByLocation(GetRealZoneText()) -- Update history for current location
 		else 
 			containerFrame.historyFrame:Hide()
 			--titleBar:Hide()  -- Show the title bar when the command is used
@@ -590,6 +798,9 @@ minimapButton:SetScript("OnClick", function(self, button)
 			--clearButton:Hide()  -- Show the clear history button when the command is used
 			--bgFrame:Hide() -- Show the black frame when the command is used
 			containerFrame.locationDropDown:Hide()
+            containerFrame.playerDropDown:Hide()
+            containerFrame.itemDropDown:Hide()
+            containerFrame.rollTypeDropDown:Hide()
             containerFrame:Hide()
 			containerFrame:EnableMouse(false)
 		end
@@ -644,4 +855,6 @@ minimapButton:SetScript("OnLeave", function()
     GameTooltip:Hide()
 end)
 
+
+UpdateHistoryByLocation("All")  -- Maybe not needed?
 containerFrame:EnableMouse(false)

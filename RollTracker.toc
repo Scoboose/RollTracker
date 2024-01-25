@@ -4,4 +4,5 @@
 ## Author: Pokey
 ## Version: 1.0.3
 ## SavedVariables: RollTrackerDB
+## SavedVariables: RollTrackerDropdowns
 RollTracker.lua

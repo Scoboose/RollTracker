@@ -1,8 +1,8 @@
-## Interface: 11404
+## Interface: 11500
 ## Title: RollTracker
 ## Notes: Tracks and displays roll history.
 ## Author: Pokey
-## Version: 1.0.3
+## Version: 1.0.4
 ## SavedVariables: RollTrackerDB
 ## SavedVariables: RollTrackerDropdowns
 RollTracker.lua

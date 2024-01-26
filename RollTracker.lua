@@ -23,26 +23,6 @@ function rpairs(t)
 	end, t, #t + 1
 end
 
--- Function to clear history
-local function ClearHistory()
-    if next(RollTrackerDB) ~= nil then
-        StaticPopupDialogs["CLEAR_ROLL_HISTORY"] = {
-            text = "Are you sure you want to clear the roll history?",
-            button1 = "Accept",
-            button2 = "Decline",
-            OnAccept = function()
-                wipe(RollTrackerDB)
-                UpdateHistory()
-            end,
-            timeout = 0,
-            whileDead = true,
-            hideOnEscape = true,
-            preferredIndex = 3,
-        }
-        StaticPopup_Show("CLEAR_ROLL_HISTORY")
-    end
-end
-
 -- Function to handle rolling for a reason
 local function RollReason()
     StaticPopupDialogs["Roll_With_Reason"] = {
@@ -431,6 +411,26 @@ local function UpdateHistory()
         containerFrame.percentageText:SetText("No roll history available")
         containerFrame.NoRolls:Show()
         containerFrame.NoRolls:SetText("No roll history available for " .. dropDowns["dropDownPlayer"] .. " at " .. dropDowns["dropDownLocation"] .. "\nfor " .. dropDowns["dropDownItem"] .. " with a roll type of " .. dropDowns["dropDownRollType"])
+    end
+end
+
+-- Function to clear history
+local function ClearHistory()
+    if next(RollTrackerDB) ~= nil then
+        StaticPopupDialogs["CLEAR_ROLL_HISTORY"] = {
+            text = "Are you sure you want to clear the roll history?",
+            button1 = "Accept",
+            button2 = "Decline",
+            OnAccept = function()
+                wipe(RollTrackerDB)
+                UpdateHistory()
+            end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = true,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show("CLEAR_ROLL_HISTORY")
     end
 end
 

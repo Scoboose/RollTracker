@@ -2,7 +2,7 @@
 ## Title: RollTracker
 ## Notes: Tracks and displays roll history.
 ## Author: Pokey
-## Version: 1.0.5
+## Version: 1.0.6
 ## SavedVariables: RollTrackerDB
 ## SavedVariables: options
 RollTracker.lua

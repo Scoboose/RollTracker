@@ -1,0 +1,8 @@
+## Interface: 30403
+## Title: LibSFDropDown
+## Author: sfmict
+## Notes: Dropdown menu library
+## Version: r21
+## OptionalDeps: LibStub
+libs\LibStub\LibStub.lua
+LibSFDropDown.xml

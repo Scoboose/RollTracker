@@ -1,8 +1,11 @@
 ## Interface: 11500
-## Title: RollTracker
+## Title: |TInterface\Icons\INV_Misc_Dice_02:0|t|cFF00FF00 Roll Tracker|r
 ## Notes: Tracks and displays roll history.
-## Author: Pokey
-## Version: 1.0.6
+## Author: |cFF69CCF0Pokey|r
+## Version: 1.0.7
 ## SavedVariables: RollTrackerDB
 ## SavedVariables: options
+
+libs\Libstub\Libstub.lua
+libs\LibSFDropDown\LibSFDropDown.xml
 RollTracker.lua

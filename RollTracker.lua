@@ -2,6 +2,8 @@
 
 -- ####Start of setup####
 
+local lsfdd = LibStub("LibSFDropDown-1.4")
+
 local dropDowns = {["dropDownPlayer"] = "", ["dropDownLocation"] = "",["dropDownItem"] = "", ["dropDownRollType"] = ""}
 local firstUse = true
 -- Get the player's name
@@ -173,8 +175,23 @@ local function OnEvent(self, event, ...)
             RollTrackerDB = {}
         end
 
+        local cleanItem, cleanItem1, cleanItem2, cleanItem3, cleanItem4
+        if item then
+            if item:match("|cff") then
+                cleanItem1, cleanItem2, cleanItem3, cleanItem4 = item:match("(.*)(:)(%d+)(.*)")
+                --cleanItem1 = rollData.item:match("(.*)")
+                --print("1- " .. cleanItem1)
+                --print("2- " .. cleanItem2)
+                --print("3- " .. cleanItem3)
+                --print("4- " .. cleanItem4)
+                cleanItem = cleanItem1 .. cleanItem2 .. cleanItem4
+                else
+                    cleanItem = item
+            end
+        end
+
         -- Insert roll data into the database
-        table.insert(RollTrackerDB, { roll = tonumber(roll), name=playerName, type = rollType, location = location, item = item, timestamp = time() })
+        table.insert(RollTrackerDB, { roll = tonumber(roll), name=playerName, type = rollType, location = location, item = cleanItem, timestamp = time() })
         -- print(item) -- Debug
         rollReason = nil -- Set back to nil after logging a roll with reason
         -- print(rollReason) -- Debug
@@ -267,11 +284,10 @@ containerFrame.contentFrame:SetScript("OnHyperlinkLeave", function()
 containerFrame.historyFrame:SetScrollChild(containerFrame.contentFrame)
 
 -- Create player drop-down menu
-containerFrame.playerDropDown = CreateFrame("Frame", "RollTrackerPlayerDropDown", containerFrame, "UIDropDownMenuTemplate")
-containerFrame.playerDropDown:SetPoint("TOPLEFT",-15,-35)
-UIDropDownMenu_SetWidth(containerFrame.playerDropDown,80,0)
-UIDropDownMenu_JustifyText(containerFrame.playerDropDown,"LEFT")
-containerFrame.playerDropDown:Hide() -- Hide initially
+local playerButton = lsfdd:CreateButton(containerFrame)
+playerButton:SetPoint("TOPLEFT",5,-40)
+playerButton:SetSize(90, 22)
+playerButton:ddSetSelectedValue("All")
 
 -- Player dropdown label
 containerFrame.characterNameText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -280,37 +296,34 @@ containerFrame.characterNameText:SetTextColor(1, 1, 1) -- White color
 containerFrame.characterNameText:SetPoint("TOPLEFT",30,-25)
 
 -- Create location drop-down menu
-containerFrame.locationDropDown = CreateFrame("Frame", "RollTrackerLocationDropDown", containerFrame, "UIDropDownMenuTemplate")
-containerFrame.locationDropDown:SetPoint("TOPLEFT",85,-35)
-UIDropDownMenu_SetWidth(containerFrame.locationDropDown,80,0)
-UIDropDownMenu_JustifyText(containerFrame.locationDropDown,"LEFT")
-containerFrame.locationDropDown:Hide() -- Hide initially
+local locationButton = lsfdd:CreateButton(containerFrame)
+locationButton:SetPoint("TOPLEFT",100,-40)
+locationButton:SetSize(120, 22)
+locationButton:ddSetSelectedValue("All")
 
 -- Location drop down label
 containerFrame.locationText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 containerFrame.locationText:SetText("Location")
 containerFrame.locationText:SetTextColor(1, 1, 1) -- White color
-containerFrame.locationText:SetPoint("TOPLEFT",130,-25)
+containerFrame.locationText:SetPoint("TOPLEFT",140,-25)
 
 -- Create item drop-down menu
-containerFrame.itemDropDown = CreateFrame("Frame", "RollTrackerItemDropDown", containerFrame, "UIDropDownMenuTemplate")
-containerFrame.itemDropDown:SetPoint("TOPLEFT",185,-35)
-UIDropDownMenu_SetWidth(containerFrame.itemDropDown,120,0)
-UIDropDownMenu_JustifyText(containerFrame.itemDropDown,"LEFT")
-containerFrame.itemDropDown:Hide() -- Hide initially
+local itemButton = lsfdd:CreateButton(containerFrame)
+itemButton:SetPoint("TOPLEFT",225,-40)
+itemButton:SetSize(120, 22)
+itemButton:ddSetSelectedValue("All")
 
 -- Item drop down label
 containerFrame.itemText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 containerFrame.itemText:SetText("Item")
 containerFrame.itemText:SetTextColor(1, 1, 1) -- White color
-containerFrame.itemText:SetPoint("TOPLEFT",260,-25)
+containerFrame.itemText:SetPoint("TOPLEFT",280,-25)
 
 -- Create roll type drop-down menu
-containerFrame.rollTypeDropDown = CreateFrame("Frame", "RollTrackerrollTypeDropDown", containerFrame, "UIDropDownMenuTemplate")
-containerFrame.rollTypeDropDown:SetPoint("TOPLEFT",325,-35)
-UIDropDownMenu_SetWidth(containerFrame.rollTypeDropDown,60,0)
-UIDropDownMenu_JustifyText(containerFrame.rollTypeDropDown,"LEFT")
-containerFrame.rollTypeDropDown:Hide() -- Hide initially
+local rollTypeButton = lsfdd:CreateButton(containerFrame)
+rollTypeButton:SetPoint("TOPLEFT",350,-40)
+rollTypeButton:SetSize(60, 22)
+rollTypeButton:ddSetSelectedValue("All")
 
 -- Roll type drop down label
 containerFrame.rollTypeText = containerFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -341,7 +354,7 @@ local function UpdateHistory()
     local rolls25AndUnder = 0
     local rolls75AndAbove = 0
 
-    for i, rollData in rpairs(RollTrackerDB) do
+    for i, rollData in rpairs(RollTrackerDB) do        
         if dropDowns["dropDownLocation"] == "All" or rollData.location == dropDowns["dropDownLocation"] then
             if dropDowns["dropDownPlayer"] == "All" or rollData.name == dropDowns["dropDownPlayer"] then
                 if dropDowns["dropDownItem"] == "All" or rollData.item == dropDowns["dropDownItem"] then
@@ -349,6 +362,7 @@ local function UpdateHistory()
                         if rollData.item == nil then
                             rollData.item = "Unknown"
                         end
+
                         local dateText = date("%m/%d/%Y", rollData.timestamp or 0)
                         local rollText = containerFrame.contentFrame:CreateFontString("RollTrackerRollText", "HIGHLIGHT", "GameFontNormalSmall")
                         
@@ -410,7 +424,7 @@ local function UpdateHistory()
     else
         containerFrame.percentageText:SetText("No roll history available")
         containerFrame.NoRolls:Show()
-        containerFrame.NoRolls:SetText("No roll history available for " .. dropDowns["dropDownPlayer"] .. " at " .. dropDowns["dropDownLocation"] .. "\nfor " .. dropDowns["dropDownItem"] .. " with a roll type of " .. dropDowns["dropDownRollType"])
+        containerFrame.NoRolls:SetText("No roll history available for " .. dropDowns["dropDownPlayer"] .. " in " .. dropDowns["dropDownLocation"] .. "\nfor " .. dropDowns["dropDownItem"] .. " with a roll type of " .. dropDowns["dropDownRollType"])
     end
 end
 
@@ -435,89 +449,92 @@ local function ClearHistory()
 end
 
 -- Function to handle location drop-down menu selection
-local function OnLocationDropDownSelect(self, arg1, arg2, checked)
-    local selectedLocation = arg1 or "All"  -- Use "All" if arg1 is nil
-    UIDropDownMenu_SetText(containerFrame.locationDropDown, selectedLocation)
-    dropDowns["dropDownLocation"] = selectedLocation
+local function selectFunction(menuButton, arg1, arg2, checked)
+    locationButton:ddSetSelectedValue(menuButton.value)
+    local selectedItem = menuButton.value or "All"  -- Use "All" if arg1 is nil
+    dropDowns["dropDownLocation"] = selectedItem
     UpdateHistory()
 end
 
--- Initialize location drop-down menu with default value
-UIDropDownMenu_Initialize(containerFrame.locationDropDown, function()
-    local info = UIDropDownMenu_CreateInfo()
-    info.text = "All"
-    info.func = OnLocationDropDownSelect
-    UIDropDownMenu_AddButton(info)
+-- Initialize location drop-down menu
+locationButton:ddInitialize(function(self, level)
+    local info = {}
+    info.list = {}
+    local infoAll = {}
+    infoAll.text = "All"
+    infoAll.value = "All"
+    infoAll.func = selectFunction
+    tinsert(info.list, infoAll)
 
     if RollTrackerDB then
-        local locations = {}
+        local items = {}
         for _, rollData in ipairs(RollTrackerDB) do
-            locations[rollData.location] = true
+            items[rollData.location] = true
         end
 
-        for location in pairs(locations) do
-            info.text = location
-            info.func = OnLocationDropDownSelect
-            info.arg1 = location  -- Pass the location as arg1
-            UIDropDownMenu_AddButton(info)
+        for item in pairs(items) do
+            local subInfo = {}
+            subInfo.text = item
+            subInfo.value = item
+            subInfo.func = selectFunction
+            tinsert(info.list, subInfo)
         end
     end
+    self:ddAddButton(info, level)
 end)
-
--- Set the initial selected value for locationDropDown
-local initialLocation = "All"
-UIDropDownMenu_SetText(containerFrame.locationDropDown, initialLocation)
-OnLocationDropDownSelect(nil, initialLocation) -- Manually trigger the initial selection
 
 -- Function to handle player drop-down menu selection
-local function OnPlayerDropDownSelect(self, arg1, arg2, checked)
-    local selectedPlayer = arg1 or "All"  -- Use "All" if arg1 is nil
-    UIDropDownMenu_SetText(containerFrame.playerDropDown, selectedPlayer)
-    dropDowns["dropDownPlayer"] = selectedPlayer
+local function selectFunction(menuButton, arg1, arg2, checked)
+    playerButton:ddSetSelectedValue(menuButton.value)
+    local selectedItem = menuButton.value or "All"  -- Use "All" if arg1 is nil
+    dropDowns["dropDownPlayer"] = selectedItem
     UpdateHistory()
 end
 
--- Initialize player drop-down menu with default value
-UIDropDownMenu_Initialize(containerFrame.playerDropDown, function()
-    local info = UIDropDownMenu_CreateInfo()
-    info.text = "All"
-    info.func = OnPlayerDropDownSelect
-    UIDropDownMenu_AddButton(info)
+-- Initialize player drop-down menu
+playerButton:ddInitialize(function(self, level)
+    local info = {}
+    info.list = {}
+    local infoAll = {}
+    infoAll.text = "All"
+    infoAll.value = "All"
+    infoAll.func = selectFunction
+    tinsert(info.list, infoAll)
 
     if RollTrackerDB then
-        local players = {}
+        local items = {}
         for _, rollData in ipairs(RollTrackerDB) do
-            players[rollData.name] = true
+            items[rollData.name] = true
         end
 
-        for player in pairs(players) do
-            info.text = player
-            info.func = OnPlayerDropDownSelect
-            info.arg1 = player  -- Pass the location as arg1
-            UIDropDownMenu_AddButton(info)
+        for item in pairs(items) do
+            local subInfo = {}
+            subInfo.text = item
+            subInfo.value = item
+            subInfo.func = selectFunction
+            tinsert(info.list, subInfo)
         end
     end
+    self:ddAddButton(info, level)
 end)
 
--- Set the initial selected value for playerDropDown
-local initialPlayer = playerName
-UIDropDownMenu_SetText(containerFrame.playerDropDown, initialPlayer)
-OnPlayerDropDownSelect(nil, initialPlayer) -- Manually trigger the initial selection
-
 -- Function to handle item drop-down menu selection
-local function OnItemDropDownSelect(self, arg1, arg2, checked)
-    local selectedItem = arg1 or "All"  -- Use "All" if arg1 is nil
-    UIDropDownMenu_SetText(containerFrame.itemDropDown, selectedItem)
+local function selectFunction(menuButton, arg1, arg2, checked)
+    itemButton:ddSetSelectedValue(menuButton.value)
+    local selectedItem = menuButton.value or "All"  -- Use "All" if arg1 is nil
     dropDowns["dropDownItem"] = selectedItem
     UpdateHistory()
 end
 
--- Initialize item drop-down menu with default value
-UIDropDownMenu_Initialize(containerFrame.itemDropDown, function()
-    local info = UIDropDownMenu_CreateInfo()
-    info.text = "All"
-    info.func = OnItemDropDownSelect
-    UIDropDownMenu_AddButton(info)
+-- Initialize item drop-down menu
+itemButton:ddInitialize(function(self, level)
+    local info = {}
+    info.list = {}
+    local infoAll = {}
+    infoAll.text = "All"
+    infoAll.value = "All"
+    infoAll.func = selectFunction
+    tinsert(info.list, infoAll)
 
     if RollTrackerDB then
         local items = {}
@@ -526,53 +543,50 @@ UIDropDownMenu_Initialize(containerFrame.itemDropDown, function()
         end
 
         for item in pairs(items) do
-            info.text = item
-            info.func = OnItemDropDownSelect
-            info.arg1 = item  -- Pass the location as arg1
-            UIDropDownMenu_AddButton(info)
+            local subInfo = {}
+            subInfo.text = item
+            subInfo.value = item
+            subInfo.func = selectFunction
+            tinsert(info.list, subInfo)
         end
     end
+    self:ddAddButton(info, level)
 end)
 
--- Set the initial selected value for itemDropDown
-local initialItem = "All"
-UIDropDownMenu_SetText(containerFrame.itemDropDown, initialItem)
-OnItemDropDownSelect(nil, initialItem) -- Manually trigger the initial selection
-
 -- Function to handle roll type drop-down menu selection
-local function OnRollTypeDropDownSelect(self, arg1, arg2, checked)
-    local selectedRollType = arg1 or "All"  -- Use "All" if arg1 is nil
-    UIDropDownMenu_SetText(containerFrame.rollTypeDropDown, selectedRollType)
-    dropDowns["dropDownRollType"] = selectedRollType
+local function selectFunction(menuButton, arg1, arg2, checked)
+    rollTypeButton:ddSetSelectedValue(menuButton.value)
+    local selectedItem = menuButton.value or "All"  -- Use "All" if arg1 is nil
+    dropDowns["dropDownRollType"] = selectedItem
     UpdateHistory()
 end
 
--- Initialize roll type drop-down menu with default value
-UIDropDownMenu_Initialize(containerFrame.rollTypeDropDown, function()
-    local info = UIDropDownMenu_CreateInfo()
-    info.text = "All"
-    info.func = OnRollTypeDropDownSelect
-    UIDropDownMenu_AddButton(info)
+-- Initialize roll type drop-down menu
+rollTypeButton:ddInitialize(function(self, level)
+    local info = {}
+    info.list = {}
+    local infoAll = {}
+    infoAll.text = "All"
+    infoAll.value = "All"
+    infoAll.func = selectFunction
+    tinsert(info.list, infoAll)
 
     if RollTrackerDB then
-        local types = {}
+        local items = {}
         for _, rollData in ipairs(RollTrackerDB) do
-            types[rollData.type] = true
+            items[rollData.type] = true
         end
 
-        for type in pairs(types) do
-            info.text = type
-            info.func = OnRollTypeDropDownSelect
-            info.arg1 = type  -- Pass the location as arg1
-            UIDropDownMenu_AddButton(info)
+        for item in pairs(items) do
+            local subInfo = {}
+            subInfo.text = item
+            subInfo.value = item
+            subInfo.func = selectFunction
+            tinsert(info.list, subInfo)
         end
     end
+    self:ddAddButton(info, level)
 end)
-
--- Set the initial selected value for rollType
-local initialRollType = "All"
-UIDropDownMenu_SetText(containerFrame.rollTypeDropDown, initialRollType)
-OnItemDropDownSelect(nil, initialRollType) -- Manually trigger the initial selection
 
 -- ####End Main addon####
 
@@ -600,23 +614,14 @@ minimapButton:SetScript("OnClick", function(self, button)
         if not containerFrame.historyFrame:IsShown() then
             if firstUse == true then
                 firstUse = false
-                dropDowns = {["dropDownPlayer"] = playerName, ["dropDownLocation"] = GetRealZoneText(), ["dropDownItem"] = "All", ["dropDownRollType"] = "All"}
-                OnLocationDropDownSelect(nil, GetRealZoneText()) -- Manually trigger the initial selection
+                dropDowns = {["dropDownPlayer"] = "All", ["dropDownLocation"] = "All", ["dropDownItem"] = "All", ["dropDownRollType"] = "All"}
             end
             containerFrame.historyFrame:Show()
-            containerFrame.locationDropDown:Show()
-            containerFrame.playerDropDown:Show()
-            containerFrame.itemDropDown:Show()
-            containerFrame.rollTypeDropDown:Show()
             containerFrame:Show()
             containerFrame:EnableMouse(true)
             UpdateHistory() -- Update history
 		else 
 			containerFrame.historyFrame:Hide()
-			containerFrame.locationDropDown:Hide()
-            containerFrame.playerDropDown:Hide()
-            containerFrame.itemDropDown:Hide()
-            containerFrame.rollTypeDropDown:Hide()
             containerFrame:Hide()
 			containerFrame:EnableMouse(false)
 		end
